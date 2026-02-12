@@ -29,10 +29,12 @@ st.title("💰 Loan Approval Prediction System")
 st.subheader("Select Model")
 
 MODEL_PATHS = {
-    "Logistic Regression": "model/final_model.pkl",
-    # Add more if you trained them
-    # "Random Forest": "model/rf_model.pkl",
-    # "SVM": "model/svm_model.pkl"
+    "Logistic Regression": "model/logistic_regression.pkl",
+    "Random Forest" : "model/random_forest.pkl",
+    "Descision Tree" : "model/decision_tree.pkl",
+    "KNN" : "model/knn.pkl",
+    "Naive Bayes" : "model/naive_bayes.pkl",
+    "XGBoost" : "model/xgboost.pkl"
 }
 
 model_name = st.selectbox("Choose a model", list(MODEL_PATHS.keys()))
