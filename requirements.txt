@@ -1,9 +1,6 @@
-matplotlib
-numpy
+streamlit
 pandas
-seaborn
+numpy
 scikit-learn
 xgboost
-streamlit
-altair==4.2.2
-imghdr
+joblib
