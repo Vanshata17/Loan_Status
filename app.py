@@ -1,83 +1,123 @@
 import streamlit as st
 import pandas as pd
 import joblib
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    classification_report
+)
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-# -----------------------------
-# Page config
-# -----------------------------
+# --------------------------------------------------
+# Page configuration
+# --------------------------------------------------
 st.set_page_config(
-    page_title="Loan Approval Predictor",
+    page_title="Loan Approval Prediction System",
     page_icon="💰",
     layout="centered"
 )
 
-st.title("💰 Loan Approval Predictor")
+st.title("💰 Loan Approval Prediction System")
 
-# -----------------------------
-# Load trained model
-# -----------------------------
-model = joblib.load("model/final_model.pkl")
+# --------------------------------------------------
+# Model selection (Requirement b)
+# --------------------------------------------------
+st.subheader("Select Model")
 
-# -----------------------------
-# User Inputs
-# -----------------------------
-st.subheader("Enter Applicant Details")
+MODEL_PATHS = {
+    "Logistic Regression": "model/final_model.pkl",
+    # Add more if you trained them
+    # "Random Forest": "model/rf_model.pkl",
+    # "SVM": "model/svm_model.pkl"
+}
 
-gender = st.selectbox("Gender", ["Male", "Female"])
-married = st.selectbox("Married", ["Yes", "No"])
-dependents = st.selectbox("Dependents", ["0", "1", "2", "3+"])
-education = st.selectbox("Education", ["Graduate", "Not Graduate"])
-self_employed = st.selectbox("Self Employed", ["Yes", "No"])
-property_area = st.selectbox("Property Area", ["Urban", "Semiurban", "Rural"])
+model_name = st.selectbox("Choose a model", list(MODEL_PATHS.keys()))
+model = joblib.load(MODEL_PATHS[model_name])
 
-applicant_income = st.number_input(
-    "Applicant Income",
-    min_value=0,
-    step=1000
+st.success(f"Loaded model: {model_name}")
+
+# --------------------------------------------------
+# Dataset upload (Requirement a)
+# --------------------------------------------------
+st.subheader("Upload Test Dataset (CSV)")
+
+uploaded_file = st.file_uploader(
+    "Upload test CSV file (with Loan_Status column)",
+    type=["csv"]
 )
 
-coapplicant_income = st.number_input(
-    "Coapplicant Income",
-    min_value=0,
-    step=1000
-)
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
 
-loan_amount = st.number_input(
-    "Loan Amount",
-    min_value=0,
-    step=100
-)
+    st.write("📄 Preview of uploaded data:")
+    st.dataframe(df.head())
 
-loan_term = st.number_input(
-    "Loan Amount Term (in months)",
-    min_value=0,
-    step=12,
-    value=360
-)
+    # --------------------------------------------------
+    # Check target column
+    # --------------------------------------------------
+    if "Loan_Status" not in df.columns:
+        st.error("❌ Uploaded dataset must contain 'Loan_Status' column")
+        st.stop()
 
-credit_history = st.selectbox("Credit History", [1.0, 0.0])
+    X_test = df.drop(columns=["Loan_Status"])
+    y_test = df["Loan_Status"]
 
-# -----------------------------
-# Prediction
-# -----------------------------
-if st.button("Predict Loan Status"):
-    input_df = pd.DataFrame([{
-        "Gender": gender,
-        "Married": married,
-        "Dependents": dependents,
-        "Education": education,
-        "Self_Employed": self_employed,
-        "ApplicantIncome": applicant_income,
-        "CoapplicantIncome": coapplicant_income,
-        "LoanAmount": loan_amount,
-        "Loan_Amount_Term": loan_term,
-        "Credit_History": credit_history,
-        "Property_Area": property_area
-    }])
+    # --------------------------------------------------
+    # Prediction
+    # --------------------------------------------------
+    y_pred = model.predict(X_test)
 
-    prediction = model.predict(input_df)
+    # --------------------------------------------------
+    # Evaluation metrics (Requirement c)
+    # --------------------------------------------------
+    st.subheader("📊 Evaluation Metrics")
 
-    if prediction[0] == 1:
-        st.success("✅ Loan Approved")
-    else:
-        st.error("❌ Loan Rejected")
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+
+    col1, col2 = st.columns(2)
+    col1.metric("Accuracy", f"{accuracy:.2f}")
+    col2.metric("Precision", f"{precision:.2f}")
+
+    col3, col4 = st.columns(2)
+    col3.metric("Recall", f"{recall:.2f}")
+    col4.metric("F1 Score", f"{f1:.2f}")
+
+    # --------------------------------------------------
+    # Confusion Matrix (Requirement d)
+    # --------------------------------------------------
+    st.subheader("📉 Confusion Matrix")
+
+    cm = confusion_matrix(y_test, y_pred)
+
+    fig, ax = plt.subplots()
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        xticklabels=["Rejected", "Approved"],
+        yticklabels=["Rejected", "Approved"],
+        ax=ax
+    )
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Actual")
+    st.pyplot(fig)
+
+    # --------------------------------------------------
+    # Classification Report (Requirement d)
+    # --------------------------------------------------
+    st.subheader("📄 Classification Report")
+
+    report = classification_report(y_test, y_pred, output_dict=True)
+    report_df = pd.DataFrame(report).transpose()
+    st.dataframe(report_df)
+
+else:
+    st.info("👆 Please upload a test CSV file to continue.")
